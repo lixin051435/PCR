@@ -46,9 +46,10 @@ class PCR:
         return PCR(list[1],list[2],list[3],list[4],list[5],list[6],list[7],list[8],list[9])
 
 
+filename = input('请输入文件名\n')
 
 # 获取一个工作簿
-workbook = xlrd.open_workbook(u'2.xlsx')
+workbook = xlrd.open_workbook(filename)
 
 # 获取所有的工作表
 sheet_names= workbook.sheet_names()
@@ -120,7 +121,7 @@ def getResult(title):
     res = []
     for key in resTitle:
         for key2 in list(data_dict[key]):
-            if('terminal' in  key2 and title in key2):
+            if(title + '_double_delta_ct_terminal' == key2):
                 res.append(data_dict[key][key2])
     
     return np.transpose(res)
@@ -142,7 +143,7 @@ def main():
         for j in range(res.shape[1]):
             worksheet.write(i+1,j,res[i][j])
     workbook.save('./RES.xls')
-    print("文件已经保存到RES.xls")
+    print("文件已经保存到D:/RES.xls")
 
 if __name__ == "__main__":
     main()
