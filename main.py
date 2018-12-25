@@ -1,5 +1,7 @@
 import xlrd
 import numpy as np
+import math
+import xlwt
 
 class PCR:
     
@@ -46,7 +48,7 @@ class PCR:
 
 
 # 获取一个工作簿
-workbook = xlrd.open_workbook(u'1.xlsx')
+workbook = xlrd.open_workbook(u'2.xlsx')
 
 # 获取所有的工作表
 sheet_names= workbook.sheet_names()
@@ -74,18 +76,74 @@ while(i < sheet.nrows):
                 data_dict[pcr.Sample][pcr.Target].append(pcr.Cq)
             else:
                 data_dict[pcr.Sample][pcr.Target].append(pcr.Cq)
-
-
     i = i + 1
 
+# 计算GAPAVR delta_ct
 for key in list(data_dict.keys()):
     data_dict[key]['GAPAVR'] = np.mean(data_dict[key]['GAPDH'])
     for key2 in list(data_dict[key].keys()):
-        if(key2 == 'GAPDH' or key2 == 'GAPAVR'):
+        if(key2 == 'GAPDH' or key2 == 'GAPAVR' or ('delta' in key2)):
             pass
         else:
             data_dict[key][key2 + '_delta_ct'] =  np.array(data_dict[key][key2]) - np.full((len(data_dict[key][key2])),data_dict[key]['GAPAVR'])
-            data_dict[key][key2 + '_double_delta_ct'] =  np.array(data_dict[key][key2 + '_delta_ct']) - np.array(data_dict[key]['C-CON_delta_ct'])
+            # data_dict[key][key2 + '_double_delta_ct'] =  data_dict[key][key2 + '_delta_ct'] - data_dict[key]['C-CON_delta_ct']
 
-for key in data_dict:
-    print(data_dict[key])
+# 计算double_delta_ct 
+for key in list(data_dict.keys()):
+    for key2 in list(data_dict[key].keys()):
+        if(key2 == 'GAPDH' or key2 == 'GAPAVR' or ('delta' in key2)):
+            pass
+        else:
+            data_dict[key][key2 + '_double_delta_ct'] =  data_dict[key][key2 + '_delta_ct'] - data_dict['C-CON'][key2 + '_delta_ct']
+
+
+# 结果表格表头的顺序 先写死
+resTitle = ['C-CON','C-H','C-N','C-L','A-CON','A-H','A-N','A-L']
+
+# 计算最终结果 2的多少多少次方
+for key in resTitle:
+    for key2 in list(data_dict[key]):
+        if('double' in key2):
+            data_dict[key][key2+'_terminal'] = []
+            for j in data_dict[key][key2]:
+                data_dict[key][key2+'_terminal'].append(math.pow(2,-j))
+
+
+# for key in resTitle:
+#     for key2 in list(data_dict[key]):
+#         if('terminal' in  key2):
+#             print(key,key2,data_dict[key][key2])
+
+
+# 根据title得到最后的转置数组
+def getResult(title):
+    res = []
+    for key in resTitle:
+        for key2 in list(data_dict[key]):
+            if('terminal' in  key2 and title in key2):
+                res.append(data_dict[key][key2])
+    
+    return np.transpose(res)
+
+
+
+def main():
+    title = input('请输入title\n')
+    res = getResult(title)
+    print(res)
+    workbook = xlwt.Workbook(encoding = 'ascii')
+    worksheet = workbook.add_sheet('res')
+
+    # 添加表格title
+    for i in range(len(resTitle)):
+        worksheet.write(0,i,resTitle[i])
+
+    for i in range(res.shape[0]):
+        for j in range(res.shape[1]):
+            worksheet.write(i+1,j,res[i][j])
+    workbook.save('./RES.xls')
+    print("文件已经保存到RES.xls")
+
+if __name__ == "__main__":
+    main()
+            
